@@ -229,6 +229,10 @@ const ACARA=["Tilawah al-Quran","Hafazan al-Quran","Tahfiz al-Quran (Juzuk 1-10)
 const ACCENT={"Tilawah al-Quran":"#1f7a64","Hafazan al-Quran":"#2c5f9e","Tahfiz al-Quran (Juzuk 1-10)":"#4b4aa0","Nasyid":"#7b4a8f","Podcast":"#8f6f22"};
 const ROLES={Nasyid:['Ketua','Ahli 2','Ahli 3','Ahli 4','Ahli 5'],Podcast:['Pengerusi','Panel 1','Panel 2','Simpanan']};
 const loc=p=>[p.kategori==='Berkumpulan'?'':p.kontinjen,p.daerah].map(x=>plain(x||'').trim()).filter(Boolean).join(' · ')||'-';
+const KO={Lelaki:0,Perempuan:1,Berkumpulan:2};
+// Lelaki dahulu, kemudian perempuan; dalam setiap kategori ikut abjad daerah (kosong di hujung), kemudian nama
+const byGroup=(a,b)=>{const da=plain(a.daerah).trim(),db=plain(b.daerah).trim();
+  return (KO[a.kategori]??9)-(KO[b.kategori]??9)||(!da)-(!db)||da.localeCompare(db,'ms')||plain(a.nama).localeCompare(plain(b.nama),'ms')};
 let state={config:null,participants:[],scores:[],users:[]}, deleteQueue={};
 const $=id=>document.getElementById(id);
 const show=id=>$(id).classList.remove('hidden'), hide=id=>$(id).classList.add('hidden');
@@ -314,7 +318,8 @@ function renderPublicList(){
   let v=state.participants.filter(p=>p.status==='Disahkan'&&(!q||p.nama.toLowerCase().includes(q)||loc(p).toLowerCase().includes(q))&&(fa==='Semua'||p.acara===fa));
   if(!v.length){$('container-public-list').innerHTML='<div class="card empty">Tiada peserta yang sepadan.</div>';return}
   const g={};v.forEach(p=>(g[p.acara]=g[p.acara]||[]).push(p));
-  $('container-public-list').innerHTML=Object.keys(g).map(a=>`
+  Object.values(g).forEach(r=>r.sort(byGroup));
+  $('container-public-list').innerHTML=ACARA.filter(a=>g[a]).map(a=>`
    <div class="card ev" style="--ac:${ACCENT[a]||'#1f7a64'}">
     <div class="ch"><h3>${e(a)}</h3><span class="n">${g[a].length} penyertaan</span></div>
     <div style="overflow-x:auto"><table><thead><tr><th>${ROLES[a]?'Nama kumpulan':'Nama peserta'}</th>${ROLES[a]?'':'<th>Sekolah</th>'}<th>Daerah</th><th class="c" style="width:100px">Kategori</th>${canDel?'<th class="r" style="width:120px"></th>':''}</tr></thead><tbody>
