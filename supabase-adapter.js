@@ -10,8 +10,7 @@ const EVENT_CONFIG = {
   "Hafazan al-Quran": ["Hafaz & Lancar (40)", "Tajwid (30)", "Fasahah (20)", "Suara & Gaya (10)"],
   "Tahfiz al-Quran (Juzuk 1-10)": ["Hafaz & Lancar (40)", "Tajwid (30)", "Fasahah (20)", "Suara & Gaya (10)"],
   "Nasyid": ["Suara (35)", "Lagu (20)", "Persembahan (15)", "Muzik (15)", "Lirik (15)"],
-  "Podcast": ["Penyampaian (25)", "Isi (45)", "Bahasa (30)"],
-  "Tik Tok": ["Kreativiti & Persembahan (30)", "Penggunaan AI (10)", "Kandungan (35)", "Kualiti Video (25)"]
+  "Podcast": ["Penyampaian (25)", "Isi (45)", "Bahasa (30)"]
 };
 
 let me = { email: '', role: null, assignedEvent: 'Semua' };
@@ -58,7 +57,7 @@ const api = {
       ? await q(sb.from('participants').select('*').order('created_at'))
       : await q(sb.from('participants_public').select('*'));
     return rows.map(r => ({
-      id: r.id, nama: r.nama, kontinjen: r.kontinjen,
+      id: r.id, nama: r.nama, kontinjen: r.kontinjen || '', daerah: r.daerah || '',
       acara: r.acara, kategori: r.kategori, status: r.status, maklumatAhli: r.maklumat_ahli || ''
     }));
   },
@@ -67,7 +66,7 @@ const api = {
     const id = crypto.randomUUID();
     try {
       await q(sb.from('participants').insert({
-        id, nama: clean(d.nama), kontinjen: clean(d.kontinjen),
+        id, nama: clean(d.nama), kontinjen: clean(d.kontinjen), daerah: clean(d.daerah),
         acara: d.acara, kategori: d.kategori, maklumat_ahli: clean(d.maklumatAhli)
       }));
     } catch (e) {
@@ -82,7 +81,7 @@ const api = {
     let rows;
     try {
       rows = await q(sb.from('participants').update({
-        nama: clean(d.nama), kontinjen: clean(d.kontinjen),
+        nama: clean(d.nama), kontinjen: clean(d.kontinjen), daerah: clean(d.daerah),
         kategori: d.kategori, maklumat_ahli: clean(d.maklumatAhli)
       }).eq('id', id).select('id'));
     } catch (e) {
