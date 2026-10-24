@@ -63,6 +63,7 @@ const api = {
   },
 
   async registerParticipant(d) {
+    if (!clean(d.daerah)) throw new Error('Daerah wajib diisi.');
     const id = crypto.randomUUID();
     try {
       await q(sb.from('participants').insert({
@@ -78,6 +79,7 @@ const api = {
   },
 
   async updateParticipant(id, d) {
+    if (!clean(d.daerah)) throw new Error('Daerah wajib diisi.');
     let rows;
     try {
       rows = await q(sb.from('participants').update({
