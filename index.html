@@ -225,8 +225,8 @@ tbody tr:hover td{background:#fafcfb}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="supabase-adapter.js"></script>
 <script>
-const ACARA=["Tilawah al-Quran","Hafazan al-Quran","Tahfiz al-Quran (Juzuk 1-10)","Nasyid","Podcast","Tik Tok"];
-const ACCENT={"Tilawah al-Quran":"#1f7a64","Hafazan al-Quran":"#2c5f9e","Tahfiz al-Quran (Juzuk 1-10)":"#4b4aa0","Nasyid":"#7b4a8f","Podcast":"#8f6f22","Tik Tok":"#b0486b"};
+const ACARA=["Tilawah al-Quran","Hafazan al-Quran","Tahfiz al-Quran (Juzuk 1-10)","Nasyid","Podcast"];
+const ACCENT={"Tilawah al-Quran":"#1f7a64","Hafazan al-Quran":"#2c5f9e","Tahfiz al-Quran (Juzuk 1-10)":"#4b4aa0","Nasyid":"#7b4a8f","Podcast":"#8f6f22"};
 const ROLES={Nasyid:['Ketua','Ahli 2','Ahli 3','Ahli 4','Ahli 5'],Podcast:['Pengerusi','Panel 1','Panel 2','Simpanan']};
 const loc=p=>[p.kontinjen,p.daerah].map(x=>plain(x||'').trim()).filter(Boolean).join(' · ')||'-';
 let state={config:null,participants:[],scores:[],users:[]}, deleteQueue={};
@@ -270,15 +270,14 @@ function fetchAll(quiet){
   const done=()=>{fetching=false;if(again){again=false;fetchAll(false)}};
   const bad=er=>{hideLoading();if(!quiet)fail(er);done()};
   const g=()=>google.script.run.withFailureHandler(bad);
-  g().withSuccessHandler(d=>{state.participants=d;
-    g().withSuccessHandler(s=>{state.scores=s;hideLoading();done();
+  g().withSuccessHandler(d=>{state.participants=d.filter(p=>ACARA.includes(p.acara));
+    g().withSuccessHandler(s=>{state.scores=s.filter(x=>ACARA.includes(x.acara));hideLoading();done();
       const cur=document.querySelector('.view:not(.hidden)');if(cur){const f={'view-public-list':renderPublicList,'view-verify-participants':renderVerifyParticipants,'view-scoring':renderScoringView,'view-verify-scores':renderVerifyScores,'view-results':renderResults}[cur.id];if(f)f()}
     }).getScores()}).getParticipants();
 }
 
 function toggleFormMode(){
   const a=$('reg-acara').value, grp=a==='Nasyid'||a==='Podcast', k=$('reg-kategori');
-  $('field-kategori-container').classList.toggle('hidden',a==='Tik Tok');
   ['reg-nama','reg-nama-kumpulan'].forEach(i=>$(i).required=false);
   $('section-individu').classList.toggle('hidden',grp);
   $('section-berkumpulan').classList.toggle('hidden',!grp);
@@ -296,7 +295,7 @@ function handleRegister(ev){
   if($('reg-website').value){hide('modal-register');show('modal-success-register');return}
   showLoading();
   const a=$('reg-acara').value, grp=a==='Nasyid'||a==='Podcast';
-  const d={kontinjen:$('reg-sekolah').value,daerah:$('reg-daerah').value,acara:a,kategori:grp?'Berkumpulan':a==='Tik Tok'?'Terbuka':$('reg-kategori').value,maklumatAhli:''};
+  const d={kontinjen:$('reg-sekolah').value,daerah:$('reg-daerah').value,acara:a,kategori:grp?'Berkumpulan':$('reg-kategori').value,maklumatAhli:''};
   if(grp){
     d.nama=$('reg-nama-kumpulan').value;
     const ms=ROLES[a].map((r,i)=>[r,$('grp-nama-'+i).value.replace(/[()|<>]/g,' ').trim()]).filter(m=>m[1]);
@@ -333,7 +332,7 @@ function editPeserta(id){
   $('edit-id').value=id;$('edit-nama').value=plain(p.nama);$('edit-sekolah').value=plain(p.kontinjen);$('edit-daerah').value=plain(p.daerah);
   $('edit-acara').innerText=p.acara;
   $('edit-nama-label').innerText=grp?'Nama kumpulan':'Nama penuh peserta';
-  const tk=p.acara==='Tik Tok';$('edit-kat-wrap').classList.toggle('hidden',grp||tk);if(!grp&&!tk)$('edit-kategori').value=p.kategori;
+  $('edit-kat-wrap').classList.toggle('hidden',grp);if(!grp)$('edit-kategori').value=p.kategori;
   $('edit-ahli-wrap').classList.toggle('hidden',!grp);
   let h='';
   if(grp){
@@ -352,7 +351,7 @@ function handleEdit(ev){
   const id=$('edit-id').value, p=state.participants.find(x=>x.id===id), grp=p.kategori==='Berkumpulan';
   const ms=grp?[...document.querySelectorAll('.edit-m')].map(i=>[i.dataset.role.replace(/[<>|]/g,''),i.value.replace(/[()|<>]/g,' ').trim()]).filter(m=>m[1]):[];
   if(grp&&!ms.length){hideLoading();showMessage('Sila isi nama sekurang-kurangnya seorang ahli.');return}
-  const d={nama:$('edit-nama').value,kontinjen:$('edit-sekolah').value,daerah:$('edit-daerah').value,kategori:grp?'Berkumpulan':p.acara==='Tik Tok'?'Terbuka':$('edit-kategori').value,
+  const d={nama:$('edit-nama').value,kontinjen:$('edit-sekolah').value,daerah:$('edit-daerah').value,kategori:grp?'Berkumpulan':$('edit-kategori').value,
     maklumatAhli:ms.map(m=>`<strong>${m[0]}:</strong> ${m[1]}`).join(' | ')};
   run().withSuccessHandler(()=>{hide('modal-edit');showMessage('Maklumat peserta dikemas kini.');loadAllData()}).updateParticipant(id,d);
 }
@@ -415,7 +414,7 @@ let G=[];
 // Garis panduan: seri dipecahkan mengikut kriteria 1 -> 4 (Tilawah, Hafazan, Tahfiz). Jika masih seri, juri bersidang.
 const TB=['Tilawah al-Quran','Hafazan al-Quran','Tahfiz al-Quran (Juzuk 1-10)'];
 const r2=v=>Math.round(v*100);
-const gt=g=>g.kategori==='Terbuka'?g.acara:`${g.acara} · ${g.kategori}`;
+const gt=g=>`${g.acara} · ${g.kategori}`;
 function groupResults(sel){
   const m={};
   state.participants.forEach(p=>{
