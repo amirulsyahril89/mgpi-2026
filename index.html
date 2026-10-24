@@ -316,8 +316,8 @@ function renderPublicList(){
   $('container-public-list').innerHTML=Object.keys(g).map(a=>`
    <div class="card ev" style="--ac:${ACCENT[a]||'#1f7a64'}">
     <div class="ch"><h3>${e(a)}</h3><span class="n">${g[a].length} penyertaan</span></div>
-    <div style="overflow-x:auto"><table><thead><tr><th>${ROLES[a]?'Nama kumpulan':'Nama peserta'}</th>${ROLES[a]?'<th>Sekolah / daerah</th>':'<th>Sekolah</th><th>Daerah</th>'}<th class="c" style="width:100px">Kategori</th>${canDel?'<th class="r" style="width:120px"></th>':''}</tr></thead><tbody>
-    ${g[a].map(p=>`<tr><td><div class="nm">${e(p.nama)}</div>${membersBtn(p)}</td>${ROLES[a]?`<td>${e(loc(p))}</td>`:`<td>${e(plain(p.kontinjen).trim()||'-')}</td><td>${e(plain(p.daerah).trim()||'-')}</td>`}<td class="c"><span class="tag">${e(p.kategori)}</span></td>${canDel?`<td class="r" style="white-space:nowrap"><button class="btn o s" onclick="editPeserta('${p.id}')">Edit</button> <button class="btn d s" onclick="hapusPeserta('${p.id}')">Padam</button></td>`:''}</tr>`).join('')}
+    <div style="overflow-x:auto"><table><thead><tr><th>${ROLES[a]?'Nama kumpulan':'Nama peserta'}</th><th>Sekolah</th><th>Daerah</th><th class="c" style="width:100px">Kategori</th>${canDel?'<th class="r" style="width:120px"></th>':''}</tr></thead><tbody>
+    ${g[a].map(p=>`<tr><td><div class="nm">${e(p.nama)}</div>${membersBtn(p)}</td><td>${e(plain(p.kontinjen).trim()||'-')}</td><td>${e(plain(p.daerah).trim()||'-')}</td><td class="c"><span class="tag">${e(p.kategori)}</span></td>${canDel?`<td class="r" style="white-space:nowrap"><button class="btn o s" onclick="editPeserta('${p.id}')">Edit</button> <button class="btn d s" onclick="hapusPeserta('${p.id}')">Padam</button></td>`:''}</tr>`).join('')}
     </tbody></table></div></div>`).join('');
 }
 function lihatAhli(id){
