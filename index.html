@@ -162,7 +162,7 @@ tbody tr:hover td{background:#fafcfb}
  <form id="form-register" onsubmit="handleRegister(event)">
   <div style="margin-bottom:10px"><label>Acara dipertandingkan</label><select id="reg-acara" required onchange="toggleFormMode()"><option value="">Pilih acara</option></select></div>
   <div class="f">
-   <div><label>Sekolah <span style="font-weight:400">(pilihan)</span></label><input id="reg-sekolah" placeholder="Cth: SMK Temerloh"></div>
+   <div id="reg-sekolah-wrap"><label>Sekolah <span style="font-weight:400">(pilihan)</span></label><input id="reg-sekolah" placeholder="Cth: SMK Temerloh"></div>
    <div><label>Daerah</label><input id="reg-daerah" required placeholder="Cth: Temerloh"></div>
   </div>
   <div id="field-kategori-container" style="margin-bottom:10px"><label>Kategori</label>
@@ -191,7 +191,7 @@ tbody tr:hover td{background:#fafcfb}
   <input type="hidden" id="edit-id">
   <div style="margin-bottom:10px"><label id="edit-nama-label">Nama</label><input id="edit-nama" required></div>
   <div class="f">
-   <div><label>Sekolah <span style="font-weight:400">(pilihan)</span></label><input id="edit-sekolah"></div>
+   <div id="edit-sekolah-wrap"><label>Sekolah <span style="font-weight:400">(pilihan)</span></label><input id="edit-sekolah"></div>
    <div><label>Daerah</label><input id="edit-daerah" required></div>
   </div>
   <div id="edit-kat-wrap" style="margin-bottom:10px"><label>Kategori</label><select id="edit-kategori"><option>Lelaki</option><option>Perempuan</option></select></div>
@@ -228,7 +228,7 @@ tbody tr:hover td{background:#fafcfb}
 const ACARA=["Tilawah al-Quran","Hafazan al-Quran","Tahfiz al-Quran (Juzuk 1-10)","Nasyid","Podcast"];
 const ACCENT={"Tilawah al-Quran":"#1f7a64","Hafazan al-Quran":"#2c5f9e","Tahfiz al-Quran (Juzuk 1-10)":"#4b4aa0","Nasyid":"#7b4a8f","Podcast":"#8f6f22"};
 const ROLES={Nasyid:['Ketua','Ahli 2','Ahli 3','Ahli 4','Ahli 5'],Podcast:['Pengerusi','Panel 1','Panel 2','Simpanan']};
-const loc=p=>[p.kontinjen,p.daerah].map(x=>plain(x||'').trim()).filter(Boolean).join(' · ')||'-';
+const loc=p=>[p.kategori==='Berkumpulan'?'':p.kontinjen,p.daerah].map(x=>plain(x||'').trim()).filter(Boolean).join(' · ')||'-';
 let state={config:null,participants:[],scores:[],users:[]}, deleteQueue={};
 const $=id=>document.getElementById(id);
 const show=id=>$(id).classList.remove('hidden'), hide=id=>$(id).classList.add('hidden');
@@ -278,6 +278,7 @@ function fetchAll(quiet){
 
 function toggleFormMode(){
   const a=$('reg-acara').value, grp=a==='Nasyid'||a==='Podcast', k=$('reg-kategori');
+  $('reg-sekolah-wrap').classList.toggle('hidden',grp);if(grp)$('reg-sekolah').value='';
   ['reg-nama','reg-nama-kumpulan'].forEach(i=>$(i).required=false);
   $('section-individu').classList.toggle('hidden',grp);
   $('section-berkumpulan').classList.toggle('hidden',!grp);
@@ -296,7 +297,7 @@ function handleRegister(ev){
   if(!$('reg-daerah').value.trim()){showMessage('Sila isi daerah.');return}
   showLoading();
   const a=$('reg-acara').value, grp=a==='Nasyid'||a==='Podcast';
-  const d={kontinjen:$('reg-sekolah').value,daerah:$('reg-daerah').value,acara:a,kategori:grp?'Berkumpulan':$('reg-kategori').value,maklumatAhli:''};
+  const d={kontinjen:grp?'':$('reg-sekolah').value,daerah:$('reg-daerah').value,acara:a,kategori:grp?'Berkumpulan':$('reg-kategori').value,maklumatAhli:''};
   if(grp){
     d.nama=$('reg-nama-kumpulan').value;
     const ms=ROLES[a].map((r,i)=>[r,$('grp-nama-'+i).value.replace(/[()|<>]/g,' ').trim()]).filter(m=>m[1]);
@@ -316,8 +317,8 @@ function renderPublicList(){
   $('container-public-list').innerHTML=Object.keys(g).map(a=>`
    <div class="card ev" style="--ac:${ACCENT[a]||'#1f7a64'}">
     <div class="ch"><h3>${e(a)}</h3><span class="n">${g[a].length} penyertaan</span></div>
-    <div style="overflow-x:auto"><table><thead><tr><th>${ROLES[a]?'Nama kumpulan':'Nama peserta'}</th><th>Sekolah</th><th>Daerah</th><th class="c" style="width:100px">Kategori</th>${canDel?'<th class="r" style="width:120px"></th>':''}</tr></thead><tbody>
-    ${g[a].map(p=>`<tr><td><div class="nm">${e(p.nama)}</div>${membersBtn(p)}</td><td>${e(plain(p.kontinjen).trim()||'-')}</td><td>${e(plain(p.daerah).trim()||'-')}</td><td class="c"><span class="tag">${e(p.kategori)}</span></td>${canDel?`<td class="r" style="white-space:nowrap"><button class="btn o s" onclick="editPeserta('${p.id}')">Edit</button> <button class="btn d s" onclick="hapusPeserta('${p.id}')">Padam</button></td>`:''}</tr>`).join('')}
+    <div style="overflow-x:auto"><table><thead><tr><th>${ROLES[a]?'Nama kumpulan':'Nama peserta'}</th>${ROLES[a]?'':'<th>Sekolah</th>'}<th>Daerah</th><th class="c" style="width:100px">Kategori</th>${canDel?'<th class="r" style="width:120px"></th>':''}</tr></thead><tbody>
+    ${g[a].map(p=>`<tr><td><div class="nm">${e(p.nama)}</div>${membersBtn(p)}</td>${ROLES[a]?'':`<td>${e(plain(p.kontinjen).trim()||'-')}</td>`}<td>${e(plain(p.daerah).trim()||'-')}</td><td class="c"><span class="tag">${e(p.kategori)}</span></td>${canDel?`<td class="r" style="white-space:nowrap"><button class="btn o s" onclick="editPeserta('${p.id}')">Edit</button> <button class="btn d s" onclick="hapusPeserta('${p.id}')">Padam</button></td>`:''}</tr>`).join('')}
     </tbody></table></div></div>`).join('');
 }
 function lihatAhli(id){
@@ -330,6 +331,7 @@ function lihatAhli(id){
 function editPeserta(id){
   const p=state.participants.find(x=>x.id===id);if(!p)return;
   const grp=p.kategori==='Berkumpulan';
+  $('edit-sekolah-wrap').classList.toggle('hidden',grp);
   $('edit-id').value=id;$('edit-nama').value=plain(p.nama);$('edit-sekolah').value=plain(p.kontinjen);$('edit-daerah').value=plain(p.daerah);
   $('edit-acara').innerText=p.acara;
   $('edit-nama-label').innerText=grp?'Nama kumpulan':'Nama penuh peserta';
@@ -354,7 +356,7 @@ function handleEdit(ev){
   const id=$('edit-id').value, p=state.participants.find(x=>x.id===id), grp=p.kategori==='Berkumpulan';
   const ms=grp?[...document.querySelectorAll('.edit-m')].map(i=>[i.dataset.role.replace(/[<>|]/g,''),i.value.replace(/[()|<>]/g,' ').trim()]).filter(m=>m[1]):[];
   if(grp&&!ms.length){hideLoading();showMessage('Sila isi nama sekurang-kurangnya seorang ahli.');return}
-  const d={nama:$('edit-nama').value,kontinjen:$('edit-sekolah').value,daerah:$('edit-daerah').value,kategori:grp?'Berkumpulan':$('edit-kategori').value,
+  const d={nama:$('edit-nama').value,kontinjen:grp?'':$('edit-sekolah').value,daerah:$('edit-daerah').value,kategori:grp?'Berkumpulan':$('edit-kategori').value,
     maklumatAhli:ms.map(m=>`<strong>${m[0]}:</strong> ${m[1]}`).join(' | ')};
   run().withSuccessHandler(()=>{hide('modal-edit');showMessage('Maklumat peserta dikemas kini.');loadAllData()}).updateParticipant(id,d);
 }
