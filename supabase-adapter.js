@@ -1,5 +1,5 @@
 // Adapter: meniru google.script.run supaya index.html tidak banyak berubah.
-const SUPABASE_URL = 'https://bdzffqkecparivxaetdw.supabase.co/rest/v1/';      // <-- tukar
+const SUPABASE_URL = 'https://bdzffqkecparivxaetdw.supabase.co/rest/v1';      // <-- tukar
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkemZmcWtlY3Bhcml2eGFldGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3ODQzNjMsImV4cCI6MjEwODM2MDM2M30.qEh5jivExOorBYuJJ5NPU4Nq38FSoNq2-FEf9DhN59k';      // <-- tukar (anon key selamat didedahkan, RLS melindungi data)
 const MAIN_ADMIN = 'amirsyah.1989@gmail.com';
 
