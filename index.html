@@ -163,7 +163,7 @@ tbody tr:hover td{background:#fafcfb}
   <div style="margin-bottom:10px"><label>Acara dipertandingkan</label><select id="reg-acara" required onchange="toggleFormMode()"><option value="">Pilih acara</option></select></div>
   <div class="f">
    <div><label>Sekolah <span style="font-weight:400">(pilihan)</span></label><input id="reg-sekolah" placeholder="Cth: SMK Temerloh"></div>
-   <div><label>Daerah <span style="font-weight:400">(pilihan)</span></label><input id="reg-daerah" placeholder="Cth: Temerloh"></div>
+   <div><label>Daerah</label><input id="reg-daerah" required placeholder="Cth: Temerloh"></div>
   </div>
   <div id="field-kategori-container" style="margin-bottom:10px"><label>Kategori</label>
    <select id="reg-kategori"><option>Lelaki</option><option>Perempuan</option><option>Berkumpulan</option></select></div>
@@ -192,7 +192,7 @@ tbody tr:hover td{background:#fafcfb}
   <div style="margin-bottom:10px"><label id="edit-nama-label">Nama</label><input id="edit-nama" required></div>
   <div class="f">
    <div><label>Sekolah <span style="font-weight:400">(pilihan)</span></label><input id="edit-sekolah"></div>
-   <div><label>Daerah <span style="font-weight:400">(pilihan)</span></label><input id="edit-daerah"></div>
+   <div><label>Daerah</label><input id="edit-daerah" required></div>
   </div>
   <div id="edit-kat-wrap" style="margin-bottom:10px"><label>Kategori</label><select id="edit-kategori"><option>Lelaki</option><option>Perempuan</option></select></div>
   <div id="edit-ahli-wrap" class="mem"><div id="edit-ahli"></div></div>
@@ -293,6 +293,7 @@ function toggleFormMode(){
 function handleRegister(ev){
   ev.preventDefault();
   if($('reg-website').value){hide('modal-register');show('modal-success-register');return}
+  if(!$('reg-daerah').value.trim()){showMessage('Sila isi daerah.');return}
   showLoading();
   const a=$('reg-acara').value, grp=a==='Nasyid'||a==='Podcast';
   const d={kontinjen:$('reg-sekolah').value,daerah:$('reg-daerah').value,acara:a,kategori:grp?'Berkumpulan':$('reg-kategori').value,maklumatAhli:''};
@@ -347,7 +348,9 @@ function editPeserta(id){
   show('modal-edit');
 }
 function handleEdit(ev){
-  ev.preventDefault();showLoading();
+  ev.preventDefault();
+  if(!$('edit-daerah').value.trim()){showMessage('Sila isi daerah.');return}
+  showLoading();
   const id=$('edit-id').value, p=state.participants.find(x=>x.id===id), grp=p.kategori==='Berkumpulan';
   const ms=grp?[...document.querySelectorAll('.edit-m')].map(i=>[i.dataset.role.replace(/[<>|]/g,''),i.value.replace(/[()|<>]/g,' ').trim()]).filter(m=>m[1]):[];
   if(grp&&!ms.length){hideLoading();showMessage('Sila isi nama sekurang-kurangnya seorang ahli.');return}
