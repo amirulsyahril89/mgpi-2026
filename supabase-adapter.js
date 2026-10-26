@@ -2,6 +2,17 @@
 const SUPABASE_URL = 'https://bdzffqkecparivxaetdw.supabase.co';      // <-- tukar
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkemZmcWtlY3Bhcml2eGFldGR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3ODQzNjMsImV4cCI6MjEwODM2MDM2M30.qEh5jivExOorBYuJJ5NPU4Nq38FSoNq2-FEf9DhN59k';      // <-- tukar (anon key selamat didedahkan, RLS melindungi data)
 const MAIN_ADMIN = 'amirsyah.1989@gmail.com';
+// Log masuk nama pengguna: "juri01" -> "juri01@mgpi.example.com" (alamat dalaman, tiada e-mel dihantar)
+const USERNAME_DOMAIN = 'mgpi.example.com';
+window.USERNAME_DOMAIN = USERNAME_DOMAIN;
+const toEmail = u => { u = String(u || '').trim().toLowerCase(); return u.includes('@') ? u : u + '@' + USERNAME_DOMAIN; };
+
+window.loginPassword = async function (username, password) {
+  const { error } = await sb.auth.signInWithPassword({ email: toEmail(username), password });
+  if (error) throw new Error('Nama pengguna atau kata laluan salah.');
+};
+window.loginGoogle = () =>
+  sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -35,7 +46,7 @@ function mountAuthButton(loggedIn) {
   b.textContent = loggedIn ? 'Log Keluar' : 'Log Masuk Juri/Admin';
   b.onclick = loggedIn
     ? () => sb.auth.signOut().then(() => location.reload())
-    : () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+    : () => (window.openLogin ? window.openLogin() : window.loginGoogle());
 }
 
 const api = {
@@ -139,7 +150,7 @@ const api = {
 
   async saveUser(email, role, event) {
     await q(sb.from('app_users').upsert({
-      email: email.trim().toLowerCase(), role, assigned_event: event
+      email: toEmail(email), role, assigned_event: event
     }));
     return true;
   },
