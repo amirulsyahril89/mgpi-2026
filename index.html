@@ -146,7 +146,7 @@ tbody tr:hover td{background:#fafcfb}
  <section id="view-admin" class="view hidden">
   <div class="card" style="max-width:860px;margin:0 auto"><div class="ch"><h2>Pengurusan peranan pengguna</h2></div>
    <form id="form-user-role" onsubmit="handleUserRole(event)" style="padding:12px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;border-bottom:1px solid var(--line)">
-    <div style="flex:2;min-width:180px"><label>E-mel Google</label><input type="email" id="admin-email" required></div>
+    <div style="flex:2;min-width:180px"><label>Nama pengguna atau e-mel</label><input id="admin-email" required autocapitalize="none" placeholder="cth: juri01"></div>
     <div style="flex:1;min-width:140px"><label>Peranan</label><select id="admin-role" onchange="toggleAdminEvent(this.value)"><option>Ketua Juri Acara</option><option>Ketua Juri Keseluruhan</option><option>Admin</option></select></div>
     <div style="flex:1;min-width:140px" id="admin-event-container"><label>Acara ditugaskan</label><select id="admin-event"></select></div>
     <button class="btn">Simpan</button>
@@ -181,6 +181,18 @@ tbody tr:hover td{background:#fafcfb}
  <button class="x" onclick="hide('modal-ahli')">×</button>
  <h2 id="paparan-nama-kumpulan"></h2><p class="sub" id="paparan-info-kumpulan" style="margin-bottom:8px"></p>
  <div id="senarai-ahli-kumpulan"></div>
+</div></div>
+
+<div id="modal-login" class="modal hidden"><div class="box" style="max-width:340px">
+ <button class="x" onclick="hide('modal-login')">×</button>
+ <h2 style="margin-bottom:12px">Log masuk</h2>
+ <form onsubmit="handleLogin(event)">
+  <label>Nama pengguna</label><input id="login-user" required autocomplete="username" autocapitalize="none" style="margin-bottom:10px">
+  <label>Kata laluan</label><input id="login-pass" type="password" required autocomplete="current-password">
+  <p id="login-msg" style="color:var(--red);font-size:12px;min-height:16px;margin:6px 0"></p>
+  <button class="btn" style="width:100%;padding:7px">Log masuk</button>
+ </form>
+ <button class="lnk" style="display:block;margin:12px auto 0" onclick="loginGoogle()">Log masuk dengan Google (admin)</button>
 </div></div>
 
 <div id="modal-edit" class="modal hidden"><div class="box w">
@@ -229,6 +241,7 @@ const ACARA=["Tilawah al-Quran","Hafazan al-Quran","Tahfiz al-Quran (Juzuk 1-10)
 const ACCENT={"Tilawah al-Quran":"#1f7a64","Hafazan al-Quran":"#2c5f9e","Tahfiz al-Quran (Juzuk 1-10)":"#4b4aa0","Nasyid":"#7b4a8f","Podcast":"#8f6f22"};
 const ROLES={Nasyid:['Ketua','Ahli 2','Ahli 3','Ahli 4','Ahli 5'],Podcast:['Pengerusi','Panel 1','Panel 2','Simpanan']};
 const loc=p=>[p.kategori==='Berkumpulan'?'':p.kontinjen,p.daerah].map(x=>plain(x||'').trim()).filter(Boolean).join(' · ')||'-';
+const un=s=>{s=String(s||'');const d='@'+(window.USERNAME_DOMAIN||'');return d.length>1&&s.endsWith(d)?s.slice(0,-d.length):s};
 const KO={Lelaki:0,Perempuan:1,Berkumpulan:2};
 // Lelaki dahulu, kemudian perempuan; dalam setiap kategori ikut abjad daerah (kosong di hujung), kemudian nama
 const byGroup=(a,b)=>{const da=plain(a.daerah).trim(),db=plain(b.daerah).trim();
@@ -247,7 +260,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   ['filter-acara-peserta','reg-acara','admin-event'].forEach(id=>ACARA.forEach(a=>$(id).add(new Option(a,a))));
   showLoading();
   google.script.run.withFailureHandler(er=>{hideLoading();const u=$('user-info-display');u.innerText='Ralat pelayan';u.classList.add('err');showMessage('Ralat sambungan: '+(er&&er.message))})
-  .withSuccessHandler(cfg=>{state.config=cfg;$('user-info-display').innerText=`${cfg.email} · ${cfg.role}`;buildNavigation();loadAllData();if(window.startLive)startLive(()=>fetchAll(true))}).getAppConfig();
+  .withSuccessHandler(cfg=>{state.config=cfg;$('user-info-display').innerText=`${un(cfg.email)} · ${cfg.role}`;buildNavigation();loadAllData();if(window.startLive)startLive(()=>fetchAll(true))}).getAppConfig();
 });
 
 function buildNavigation(){
@@ -415,7 +428,7 @@ function handleScoreSubmit(ev){
 function renderVerifyScores(){
   const pd=state.scores.filter(s=>s.status==='Pending');
   $('tbl-verify-scores').innerHTML=pd.length?pd.map(s=>{const p=state.participants.find(x=>x.id===s.participantId);
-   return `<tr><td><div class="nm">${e(p?p.nama:'Tidak diketahui')}</div><div class="sub">${e(s.acara)}</div></td><td class="sub">${e(s.juriEmail)}</td><td class="c nm">${parseFloat(s.total).toFixed(2)}</td><td class="c"><span class="tag p">${s.status}</span></td><td class="r"><button class="btn s" onclick="approveScore('${s.scoreId}')">Sahkan</button></td></tr>`}).join('')
+   return `<tr><td><div class="nm">${e(p?p.nama:'Tidak diketahui')}</div><div class="sub">${e(s.acara)}</div></td><td class="sub">${e(un(s.juriEmail))}</td><td class="c nm">${parseFloat(s.total).toFixed(2)}</td><td class="c"><span class="tag p">${s.status}</span></td><td class="r"><button class="btn s" onclick="approveScore('${s.scoreId}')">Sahkan</button></td></tr>`}).join('')
    :'<tr><td colspan="5" class="empty">Tiada markah menunggu pengesahan.</td></tr>';
 }
 function approveScore(id){showLoading();run().withSuccessHandler(loadAllData).verifyScore(id)}
@@ -467,7 +480,7 @@ function lihatButiran(id){
   const x=G.flatMap(g=>g.rows).find(r=>r.id===id);if(!x)return;
   const cr=state.config.eventConfig[x.acara]||[];
   $('butiran-tajuk').innerText=x.nama;$('butiran-sub').innerText=`${gt(x)} · ${x.n} juri`;
-  $('butiran-isi').innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Juri</th>${cr.map(c=>`<th class="c">${e(c.replace(/\s*\(.*\)/,''))}</th>`).join('')}<th class="r">Jumlah</th></tr></thead><tbody>${x.scores.map(s=>`<tr><td class="sub">${e(s.juriEmail)}</td>${cr.map((c,i)=>`<td class="c">${parseFloat(s['c'+(i+1)]).toFixed(1)}</td>`).join('')}<td class="r nm">${parseFloat(s.total).toFixed(2)}</td></tr>`).join('')}</tbody></table></div>`;
+  $('butiran-isi').innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Juri</th>${cr.map(c=>`<th class="c">${e(c.replace(/\s*\(.*\)/,''))}</th>`).join('')}<th class="r">Jumlah</th></tr></thead><tbody>${x.scores.map(s=>`<tr><td class="sub">${e(un(s.juriEmail))}</td>${cr.map((c,i)=>`<td class="c">${parseFloat(s['c'+(i+1)]).toFixed(1)}</td>`).join('')}<td class="r nm">${parseFloat(s.total).toFixed(2)}</td></tr>`).join('')}</tbody></table></div>`;
   show('modal-butiran');
 }
 const plain=s=>String(s||'').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
@@ -487,12 +500,18 @@ function exportResults(){
   downloadCSV('Keputusan_MGPI_2026.csv',rows);
 }
 
+function openLogin(){$('login-msg').innerText='';show('modal-login');$('login-user').focus()}
+async function handleLogin(ev){
+  ev.preventDefault();$('login-msg').innerText='';showLoading();
+  try{await loginPassword($('login-user').value,$('login-pass').value);location.reload()}
+  catch(er){hideLoading();$('login-msg').innerText=er.message}
+}
 function loadAudit(){
   showLoading();
   run().withSuccessHandler(rows=>{
     const tz=t=>new Date(t).toLocaleString('ms-MY',{dateStyle:'short',timeStyle:'short'});
     const dt=d=>d?Object.entries(d).map(([k,v])=>`${k.replace(/_/g,' ')}: ${v}`).join(' · '):'';
-    $('tbl-audit').innerHTML=rows.length?rows.map(r=>`<tr><td class="sub" style="white-space:nowrap">${e(tz(r.at))}</td><td class="sub">${e(r.actor)}</td><td><span class="tag${/Padam/.test(r.action)?' p':''}">${e(r.action)}</span></td><td class="nm">${e(plain(r.subject))}</td><td class="sub">${e(plain(dt(r.detail)))}</td></tr>`).join('')
+    $('tbl-audit').innerHTML=rows.length?rows.map(r=>`<tr><td class="sub" style="white-space:nowrap">${e(tz(r.at))}</td><td class="sub">${e(un(r.actor))}</td><td><span class="tag${/Padam/.test(r.action)?' p':''}">${e(r.action)}</span></td><td class="nm">${e(plain(r.subject))}</td><td class="sub">${e(plain(dt(r.detail)))}</td></tr>`).join('')
      :'<tr><td colspan="5" class="empty">Belum ada rekod audit.</td></tr>';
     hideLoading()}).getAudit();
 }
@@ -500,7 +519,7 @@ function toggleAdminEvent(r){$('admin-event-container').classList.toggle('hidden
 function loadUsers(){
   showLoading();
   run().withSuccessHandler(us=>{state.users=us;
-    $('tbl-users').innerHTML=us.map(u=>`<tr><td class="nm">${e(u.email)}</td><td><span class="tag">${e(u.role)}</span></td><td class="sub">${e(u.assignedEvent||'-')}</td>
+    $('tbl-users').innerHTML=us.map(u=>`<tr><td class="nm">${e(un(u.email))}</td><td><span class="tag">${e(u.role)}</span></td><td class="sub">${e(u.assignedEvent||'-')}</td>
      <td class="r" style="white-space:nowrap"><button class="btn o s" onclick="editUser('${e(u.email)}','${e(u.role)}','${e(u.assignedEvent||'Semua')}')">Edit</button> <button class="btn d s" onclick="hapusPengguna('${e(u.email)}')">Padam</button></td></tr>`).join('');
     hideLoading()}).getUsers();
 }
