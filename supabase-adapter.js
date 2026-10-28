@@ -68,7 +68,7 @@ const api = {
       ? await q(sb.from('participants').select('*').order('created_at'))
       : await q(sb.from('participants_public').select('*'));
     return rows.map(r => ({
-      id: r.id, nama: r.nama, kontinjen: r.kontinjen || '', daerah: r.daerah || '',
+      id: r.id, nama: r.nama, kontinjen: r.kontinjen || '', daerah: r.daerah || '', giliran: r.giliran ?? null,
       acara: r.acara, kategori: r.kategori, status: r.status, maklumatAhli: r.maklumat_ahli || ''
     }));
   },
@@ -102,6 +102,18 @@ const api = {
       throw e;
     }
     if (!rows || !rows.length) throw new Error('Tiada kebenaran untuk mengedit peserta ini.');
+    return true;
+  },
+
+  async updateGiliran(id, v) {
+    v = String(v ?? '').trim();
+    let n = null;
+    if (v !== '') {
+      n = Number(v);
+      if (!Number.isInteger(n) || n < 1 || n > 999) throw new Error('Nombor giliran mestilah nombor bulat 1 hingga 999.');
+    }
+    const rows = await q(sb.from('participants').update({ giliran: n }).eq('id', id).select('id'));
+    if (!rows || !rows.length) throw new Error('Tiada kebenaran untuk menetapkan nombor giliran.');
     return true;
   },
 
