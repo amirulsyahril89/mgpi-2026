@@ -243,9 +243,9 @@ const ROLES={Nasyid:['Ketua','Ahli 2','Ahli 3','Ahli 4','Ahli 5'],Podcast:['Peng
 const loc=p=>[p.kategori==='Berkumpulan'?'':p.kontinjen,p.daerah].map(x=>plain(x||'').trim()).filter(Boolean).join(' · ')||'-';
 const un=s=>{s=String(s||'');const d='@'+(window.USERNAME_DOMAIN||'');return d.length>1&&s.endsWith(d)?s.slice(0,-d.length):s};
 const KO={Lelaki:0,Perempuan:1,Berkumpulan:2};
-// Lelaki dahulu, kemudian perempuan; dalam setiap kategori ikut abjad daerah (kosong di hujung), kemudian nama
+// Lelaki dahulu, kemudian perempuan; dalam setiap kategori ikut nombor giliran (tiada nombor di hujung), kemudian daerah, kemudian nama
 const byGroup=(a,b)=>{const da=plain(a.daerah).trim(),db=plain(b.daerah).trim();
-  return (KO[a.kategori]??9)-(KO[b.kategori]??9)||(!da)-(!db)||da.localeCompare(db,'ms')||plain(a.nama).localeCompare(plain(b.nama),'ms')};
+  return (KO[a.kategori]??9)-(KO[b.kategori]??9)||((a.giliran??1e9)-(b.giliran??1e9))||(!da)-(!db)||da.localeCompare(db,'ms')||plain(a.nama).localeCompare(plain(b.nama),'ms')};
 let state={config:null,participants:[],scores:[],users:[]}, deleteQueue={};
 const $=id=>document.getElementById(id);
 const show=id=>$(id).classList.remove('hidden'), hide=id=>$(id).classList.add('hidden');
@@ -289,7 +289,7 @@ function fetchAll(quiet){
   const g=()=>google.script.run.withFailureHandler(bad);
   g().withSuccessHandler(d=>{state.participants=d.filter(p=>ACARA.includes(p.acara));
     g().withSuccessHandler(s=>{state.scores=s.filter(x=>ACARA.includes(x.acara));hideLoading();done();
-      const cur=document.querySelector('.view:not(.hidden)');if(cur){const f={'view-public-list':renderPublicList,'view-verify-participants':renderVerifyParticipants,'view-scoring':renderScoringView,'view-verify-scores':renderVerifyScores,'view-results':renderResults}[cur.id];if(f)f()}
+      const cur=document.querySelector('.view:not(.hidden)'),typing=document.activeElement&&document.activeElement.classList.contains('gil-in');if(cur&&!typing){const f={'view-public-list':renderPublicList,'view-verify-participants':renderVerifyParticipants,'view-scoring':renderScoringView,'view-verify-scores':renderVerifyScores,'view-results':renderResults}[cur.id];if(f)f()}
     }).getScores()}).getParticipants();
 }
 
@@ -335,10 +335,11 @@ function renderPublicList(){
   $('container-public-list').innerHTML=ACARA.filter(a=>g[a]).map(a=>`
    <div class="card ev" style="--ac:${ACCENT[a]||'#1f7a64'}">
     <div class="ch"><h3>${e(a)}</h3><span class="n">${g[a].length} penyertaan</span></div>
-    <div style="overflow-x:auto"><table><thead><tr><th>${ROLES[a]?'Nama kumpulan':'Nama peserta'}</th>${ROLES[a]?'':'<th>Sekolah</th>'}<th>Daerah</th><th class="c" style="width:100px">Kategori</th>${canDel?'<th class="r" style="width:120px"></th>':''}</tr></thead><tbody>
-    ${g[a].map(p=>`<tr><td><div class="nm">${e(p.nama)}</div>${membersBtn(p)}</td>${ROLES[a]?'':`<td>${e(plain(p.kontinjen).trim()||'-')}</td>`}<td>${e(plain(p.daerah).trim()||'-')}</td><td class="c"><span class="tag">${e(p.kategori)}</span></td>${canDel?`<td class="r" style="white-space:nowrap"><button class="btn o s" onclick="editPeserta('${p.id}')">Edit</button> <button class="btn d s" onclick="hapusPeserta('${p.id}')">Padam</button></td>`:''}</tr>`).join('')}
+    <div style="overflow-x:auto"><table><thead><tr><th class="c" style="width:84px">Giliran</th><th>${ROLES[a]?'Nama kumpulan':'Nama peserta'}</th>${ROLES[a]?'':'<th>Sekolah</th>'}<th>Daerah</th><th class="c" style="width:100px">Kategori</th>${canDel?'<th class="r" style="width:120px"></th>':''}</tr></thead><tbody>
+    ${g[a].map(p=>`<tr><td class="c">${canDel?`<input class="gil-in" type="number" min="1" max="999" value="${p.giliran??''}" onchange="this.blur();setGiliran('${p.id}',this.value)" style="width:62px;text-align:center;font-weight:600" aria-label="Nombor giliran">`:`<span class="nm">${p.giliran??'-'}</span>`}</td><td><div class="nm">${e(p.nama)}</div>${membersBtn(p)}</td>${ROLES[a]?'':`<td>${e(plain(p.kontinjen).trim()||'-')}</td>`}<td>${e(plain(p.daerah).trim()||'-')}</td><td class="c"><span class="tag">${e(p.kategori)}</span></td>${canDel?`<td class="r" style="white-space:nowrap"><button class="btn o s" onclick="editPeserta('${p.id}')">Edit</button> <button class="btn d s" onclick="hapusPeserta('${p.id}')">Padam</button></td>`:''}</tr>`).join('')}
     </tbody></table></div></div>`).join('');
 }
+function setGiliran(id,v){showLoading();run().withSuccessHandler(loadAllData).updateGiliran(id,v)}
 function lihatAhli(id){
   const p=state.participants.find(x=>x.id===id);if(!p||!p.maklumatAhli)return;
   $('paparan-nama-kumpulan').innerText=p.nama;$('paparan-info-kumpulan').innerText=`${p.acara} · ${loc(p)}`;
@@ -399,10 +400,10 @@ function approveParticipant(id){showLoading();run().withSuccessHandler(loadAllDa
 
 function renderScoringView(){
   const my=state.config.assignedEvent;
-  let el=state.participants.filter(p=>p.status==='Disahkan'&&(my==='Semua'||p.acara===my));
+  let el=state.participants.filter(p=>p.status==='Disahkan'&&(my==='Semua'||p.acara===my)).sort((a,b)=>ACARA.indexOf(a.acara)-ACARA.indexOf(b.acara)||byGroup(a,b));
   $('list-scoring-participants').innerHTML=el.length?el.map(p=>{
     const s=state.scores.find(x=>x.participantId===p.id&&x.juriEmail===state.config.email);
-    return `<div class="li" onclick="openScoreForm('${p.id}')"><div><div class="nm">${e(p.nama)}</div><div class="sub">${e(loc(p))}</div></div>${s?`<span class="tag ok">${parseFloat(s.total).toFixed(2)}</span>`:''}</div>`}).join('')
+    return `<div class="li" onclick="openScoreForm('${p.id}')"><div><div class="nm">${p.giliran?`<span class="tag" style="margin-right:6px">${p.giliran}</span>`:''}${e(p.nama)}</div><div class="sub">${e(loc(p))}</div></div>${s?`<span class="tag ok">${parseFloat(s.total).toFixed(2)}</span>`:''}</div>`}).join('')
    :'<div class="empty">Tiada peserta disahkan untuk acara anda.</div>';
 }
 function openScoreForm(id){
@@ -491,8 +492,8 @@ function downloadCSV(name,rows){
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function exportPeserta(){
-  downloadCSV('Senarai_Peserta_MGPI_2026.csv',[['Bil','Nama','Sekolah','Daerah','Acara','Kategori','Status','Ahli kumpulan']].concat(
-    state.participants.map((p,i)=>[i+1,plain(p.nama),plain(p.kontinjen),plain(p.daerah),p.acara,p.kategori,p.status,plain(p.maklumatAhli).replace(/\s*\([^)]*\)/g,'')])));
+  downloadCSV('Senarai_Peserta_MGPI_2026.csv',[['Bil','No. Giliran','Nama','Sekolah','Daerah','Acara','Kategori','Status','Ahli kumpulan']].concat(
+    state.participants.map((p,i)=>[i+1,p.giliran??'',plain(p.nama),plain(p.kontinjen),plain(p.daerah),p.acara,p.kategori,p.status,plain(p.maklumatAhli).replace(/\s*\([^)]*\)/g,'')])));
 }
 function exportResults(){
   const rows=[['Kedudukan','Nama','Sekolah','Daerah','Acara','Kategori','Bil. juri','Markah']];
